@@ -28,6 +28,8 @@
           return alert('Please choose a file to upload')
         }
 
+        // can check file type
+        console.log('type', fileInput.files[0].type)
         const formData = new FormData()
         formData.append('test', fileInput.files[0])
 
@@ -43,7 +45,6 @@
               },
               onUploadProgress: function(progressEvent) {
                   const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
-                  console.log('percentCompleted', percentCompleted)
                   progressBar.value = percentCompleted
                   uploadPercentageDisplay.innerText = `${percentCompleted}%`
               },
@@ -53,7 +54,7 @@
           if (axios.isCancel(error)) {
             console.log('Upload was cancelled')
           } else {
-              alert('Error uploading file')
+            alert('Error uploading file')
           }
         }
       }

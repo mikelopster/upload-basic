@@ -2,47 +2,51 @@
 const express = require('express')
 const multer = require('multer')
 const cors = require('cors')
+
 const fs = require('fs')
+const path = require('path')
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
       cb(null, './uploads/')
   },
   filename: function (req, file, cb) {
-      cb(null, Date.now() + '-' + file.originalname)
+    const fileName = `${Date.now()}-${file.originalname}`
+    cb(null, fileName)
+    // request aborted = ลบไฟล์
+    req.on('aborted', () => {
+      const fullPath = path.join('uploads', fileName)
+      console.log('fullPath', fullPath)
+      fs.unlinkSync(fullPath)
+    })
   }
 })
-const upload = multer({ storage: storage })
+
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype === 'text/plain') { // Check if the file's mimetype is text/plain
+    cb(null, true)  // Accept the file
+  } else {
+    cb(new Error('Only .txt files are allowed!'), false) // Reject the file
+  }
+}
+
+const upload = multer({
+  storage: storage
+})
 
 const app = express()
 app.use(cors())
 
 const port = 3000
 
-app.use((req, res, next) => {
-  req.on('close', () => {
-    // This will run when the client disconnects.
-    console.log('abort', req.destroyed)
-    if (!res.writableEnded && req.destroyed) {
-      // If the response hasn't been sent yet, we consider it as an abort.
-      req.clientAborted = true
+app.post('/upload', (req, res) => {
+  upload.single('test')(req, res, (err) => {
+    if (err) {
+      console.log('error', err)
+      return res.status(400).json({ message: 'upload fail', error: err.message })
     }
+    res.send(req.file)
   })
-  next()
-})
-
-app.post('/upload', upload.single('test'), (req, res) => {
-  if (req.clientAborted) {
-    console.log('Upload was cancelled')
-
-    // สำหรับลบ file หาก upload เสร็จไปแล้ว
-    if (req.file && req.file.path) {
-      fs.unlinkSync(req.file.path)
-    }
-    return res.status(400).send('Upload was cancelled')
-  }
-  res.send(req.file)
-
 })
 
 app.listen(port, () => {
