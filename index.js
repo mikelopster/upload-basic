@@ -16,22 +16,26 @@ const storage = multer.diskStorage({
     // request aborted = ลบไฟล์
     req.on('aborted', () => {
       const fullPath = path.join('uploads', fileName)
-      console.log('fullPath', fullPath)
+      console.log('abort fullPath', fullPath)
       fs.unlinkSync(fullPath)
     })
   }
 })
 
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype === 'text/plain') { // Check if the file's mimetype is text/plain
+  if (file.mimetype === 'video/mp4') { // Check if the file's mimetype is text/plain
     cb(null, true)  // Accept the file
   } else {
-    cb(new Error('Only .txt files are allowed!'), false) // Reject the file
+    cb(new Error('Only .mp4 files are allowed!'), false) // Reject the file
   }
 }
 
 const upload = multer({
-  storage: storage
+  storage: storage,
+  limits: {
+    fileSize: 2 * 1024 * 1024  // 2 MB
+  },
+  fileFilter
 })
 
 const app = express()
@@ -43,7 +47,8 @@ app.post('/upload', (req, res) => {
   upload.single('test')(req, res, (err) => {
     if (err) {
       console.log('error', err)
-      return res.status(400).json({ message: 'upload fail', error: err.message })
+      res.status(400).json({ message: 'upload fail', error: err.message })
+      return res.req.destroy()
     }
     res.send(req.file)
   })
